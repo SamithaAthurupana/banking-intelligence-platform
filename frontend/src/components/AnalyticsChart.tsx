@@ -6,7 +6,7 @@ const AnalyticsChart = ({ customerId }: { customerId: string }) => {
   const [data, setData] = useState<any[]>([]);
 
   useEffect(() => {
-    getCustomerAnalytics(customerId).then(res => {
+    getCustomerAnalytics(customerId).then((res: any) => {
       const monthly = res.data.monthly_spending;
       const formatted = Object.keys(monthly).map(key => ({
         month: key,
