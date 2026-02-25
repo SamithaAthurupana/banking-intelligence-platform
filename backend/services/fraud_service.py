@@ -1,22 +1,43 @@
 import pandas as pd
 import numpy as np
+from datetime import timedelta
 
 class FraudEngine:
 
-    def __init__(self, threshold=50000):
-        self.threshold = threshold
+    def __init__(self, high_amount_threshold=50000):
+        self.high_amount_threshold = high_amount_threshold
 
-    def detect_fraud(self, transactions: list):
-        df = pd.DataFrame(transactions)
+    def analyze(self, new_txn: dict, history: list):
+        df = pd.DataFrame(history)
 
         if df.empty:
-            return []
+            return {"fraud": False, "anomaly_score": 0}
 
-        df["z_score"] = (df["amount"] - df["amount"].mean()) / df["amount"].std()
+        # Include new transaction temporarily
+        df = pd.concat([df, pd.DataFrame([new_txn])], ignore_index=True)
 
-        df["is_fraud"] = (
-            (df["amount"] > self.threshold) |
-            (abs(df["z_score"]) > 3)
+        # Z-score anomaly detection
+        mean = df["amount"].mean()
+        std = df["amount"].std() or 1
+        z_score = (new_txn["amount"] - mean) / std
+
+        # Rapid transaction detection (within 1 min)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        recent = df[
+            df["timestamp"] > (pd.to_datetime(new_txn["timestamp"]) - timedelta(minutes=1))
+        ]
+
+        rapid_count = len(recent)
+
+        fraud_flag = (
+            new_txn["amount"] > self.high_amount_threshold or
+            abs(z_score) > 3 or
+            rapid_count > 3
         )
 
-        return df[df["is_fraud"]].to_dict(orient="records")
+        anomaly_score = min(abs(z_score) / 5, 1)
+
+        return {
+            "fraud": fraud_flag,
+            "anomaly_score": anomaly_score
+        }
