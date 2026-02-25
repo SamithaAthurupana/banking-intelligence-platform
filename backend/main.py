@@ -5,7 +5,7 @@ from backend.core.database import engine, Base
 
 app = FastAPI(title="AI Banking Intelligence Platform")
 
-app.include_router(router)
+app.include_router(router, prefix="/api")
 
 @app.on_event("startup")
 async def startup():
